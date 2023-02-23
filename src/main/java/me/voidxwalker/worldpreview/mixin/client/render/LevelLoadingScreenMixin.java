@@ -18,7 +18,11 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.util.math.Vector3f;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Matrix4f;
+import net.minecraft.world.SaveProperties;
+import net.minecraft.world.biome.BeachBiome;
+import net.minecraft.world.biome.Biome;
 import org.apache.logging.log4j.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,6 +33,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.awt.*;
 import java.util.Iterator;
+import java.util.Objects;
 
 @Mixin(LevelLoadingScreen.class)
 public abstract class LevelLoadingScreenMixin extends Screen {
@@ -74,6 +79,17 @@ public abstract class LevelLoadingScreenMixin extends Screen {
                 this.worldpreview_initWidgets();
             }
             if (((WorldRendererMixin)WorldPreview.worldRenderer).getWorld()!=null) {
+                SaveProperties sp = Objects.requireNonNull(WorldPreview.world.getServer()).getSaveProperties();
+                if(sp.getLevelName().startsWith("Random")) {
+                    BlockPos spawnPos = WorldPreview.player.getBlockPos();
+                    Biome spawnBiome = WorldPreview.player.getEntityWorld().getBiome(spawnPos);
+                    if (!(spawnBiome instanceof BeachBiome)) {
+                        WorldPreview.inPreview = true;
+                        WorldPreview.kill = -1;
+                        WorldPreview.log(Level.INFO,"Auto resetting because no beach");
+                        return;
+                    }
+                }
                 KeyBinding.unpressAll();
                 WorldPreview.kill=0;
                 if(this.worldpreview_showMenu!= WorldPreview.showMenu){
